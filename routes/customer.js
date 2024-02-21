@@ -65,4 +65,20 @@ router.post("/login", async (req, res) => {
   }
 });
 
+//get user details
+router.post("/getDetails", async (req, res) => {
+  try {
+    var user = await customer.findOne({ email: req.body.email });
+    if (!user) {
+      !user && res.status(401).json("Wrong Credentials");
+    } else {
+      res
+        .status(200)
+        .json({ success: true, message: "User details given.", user: user });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, message: "User not found." });
+  }
+});
+
 module.exports = router;
