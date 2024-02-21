@@ -23,13 +23,11 @@ const ServiceProviderSchema = new mongoose.Schema(
     },
     state: {
       type: String,
-      required: true,
       min: 6,
       max: 1024,
     },
     city: {
       type: String,
-      required: true,
       min: 6,
       max: 1024,
     },
@@ -51,34 +49,34 @@ const ServiceProviderSchema = new mongoose.Schema(
       type: Array,
       default: [],
     },
-    tenthMarksheet:{
-        type: String,
-        required: true
-    },
-    twelthMarksheet:{
-        type: String,
-        required: true
-    },
-    graduationMarksheet:{
-        type: String,
-        required: true
-    },
-    category:{
-        type:String,
-        required:true
-    },
-    rating:{
-        type: Object,
-        default: {},
-    },
-    categoryData:{
-      type: Object,
-      default:{}
-    },
-    type:{
+    tenthMarksheet: {
       type: String,
-      default:"serviceProvider"
-    }
+    },
+    twelthMarksheet: {
+      type: String,
+    },
+    graduationMarksheet: {
+      type: String,
+    },
+    category: {
+      type: Array,
+      required: true,
+    },
+    rating: {
+      type: Object,
+      default: {},
+    },
+    categoryData: {
+      type: Object,
+      default: {},
+    },
+    pincode: {
+      type: Number,
+    },
+    type: {
+      type: String,
+      default: "serviceProvider",
+    },
   },
   { timestamps: true }
 );

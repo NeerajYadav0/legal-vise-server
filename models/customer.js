@@ -23,16 +23,18 @@ const CustomerSchema = new mongoose.Schema(
     },
     state: {
       type: String,
-      required: true,
       min: 6,
       max: 1024,
     },
     city: {
       type: String,
-      required: true,
       min: 6,
       max: 1024,
     },
+    pincode: {
+      type: Number,
+    },
+
     phoneNumber: {
       type: Number,
       required: true,
@@ -47,18 +49,18 @@ const CustomerSchema = new mongoose.Schema(
       type: Array,
       default: [],
     },
-    rating:{
-        type: Object,
-        default: {},
+    rating: {
+      type: Object,
+      default: {},
     },
-    type:{
+    type: {
       type: String,
-      default:"customer"
+      default: "customer",
     },
-    unlocked:{
+    unlocked: {
       type: Array,
       default: [],
-    }
+    },
   },
   { timestamps: true }
 );
