@@ -77,6 +77,13 @@ const ServiceProviderSchema = new mongoose.Schema(
       type: String,
       default: "serviceProvider",
     },
+    wishlist: {
+      type: Array,
+      default: [],
+    },
+    about: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

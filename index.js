@@ -6,10 +6,11 @@ const multer = require("multer");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const jwt = require("jsonwebtoken");
-const customerRoute= require("./routes/customer");
+const customerRoute = require("./routes/customer");
 const serviceProviderRoute = require("./routes/serviceProvider");
-const jobRoute = require('./routes/jobs');
-const otpRoute = require('./routes/otp')
+const jobRoute = require("./routes/jobs");
+const otpRoute = require("./routes/otp");
+const commonRoute = require("./routes/common");
 
 //configurations
 dotenv.config();
@@ -20,12 +21,11 @@ app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
 app.use(morgan("common"));
 app.use(cors({ credentials: true }));
 
-
-app.use("/api/customer",customerRoute);
-app.use("/api/serviceProvider",serviceProviderRoute);
-app.use("/api/jobs",jobRoute);
-app.use("/api/otp",otpRoute);
-
+app.use("/api/customer", customerRoute);
+app.use("/api/serviceProvider", serviceProviderRoute);
+app.use("/api/jobs", jobRoute);
+app.use("/api/otp", otpRoute);
+app.use("/api/common", commonRoute);
 
 const port = process.env.PORT || 8000;
 mongoose.set("strictQuery", true);

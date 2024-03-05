@@ -4,6 +4,7 @@ const serviceProvider = require("../models/serviceProvider");
 const router = require("express").Router();
 const job = require("../models/jobs");
 const OtpVault = require("../models/otpVault");
+const Jobs = require("../models/jobs");
 
 router.post("/register", async (req, res) => {
   const salt = await bcrypt.genSalt();
@@ -55,14 +56,17 @@ router.post("/login", async (req, res) => {
     } else {
       var userEmail = user.email;
       var isMatch = await bcrypt.compare(req.body.password, user.password);
-      if (!isMatch) return res.status(400).json("Invalid id or pass");
+      if (!isMatch)
+        return res
+          .status(400)
+          .json({ message: "Invalid id or pass", success: false });
       var type = user.type;
       var token = jwt.sign({ userEmail, type }, process.env.JWT_SECRET);
       delete user.password;
-      res.status(200).json({ token, user, type });
+      res.status(200).json({ token, user, type, success: true });
     }
   } catch (err) {
-    res.status(500).json(err);
+    res.status(500).json({ err, success: false });
   }
 });
 
@@ -96,6 +100,83 @@ router.get("/getAllServiceProviderJobs/:id", async (req, res) => {
     res.status(200).send(records);
   } catch (error) {
     res.status(500).json(err);
+  }
+});
+
+//get user details
+router.post("/getDetails", async (req, res) => {
+  try {
+    var user = await serviceProvider.findOne({ email: req.body.email });
+    if (!user) {
+      !user && res.status(401).json("Wrong Credentials");
+    } else {
+      res
+        .status(200)
+        .json({ success: true, message: "User details given.", user: user });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, message: "User not found." });
+  }
+});
+
+// add job to wishlist
+router.post("/addToWishlist", async (req, res) => {
+  try {
+    const jobId = req.body.jobId;
+    const serviceProviderId = req.body.serviceProviderId;
+
+    const result = await serviceProvider.findByIdAndUpdate(serviceProviderId, {
+      $addToSet: { wishlist: jobId },
+    });
+    res.status(200).json({ success: true, message: "Added to Wishlist" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error });
+  }
+});
+
+// remove from wishlist
+router.delete("/removeFromWishlist", async (req, res) => {
+  try {
+    const jobId = req.body.id;
+    const serviceProviderId = req.body.serviceProviderId;
+
+    const user = await serviceProvider.findById(serviceProviderId);
+    let wishlist = user?.wishlist;
+    wishlist = wishlist.filter((item) => {
+      console.log(typeof item);
+      console.log(typeof jobId);
+      return item !== jobId;
+    });
+    console.log(wishlist);
+    const result = await serviceProvider.findByIdAndUpdate(serviceProviderId, {
+      // $pull: { wishlist: jobId },
+      // $set: {
+      //   wishlist: serviceProvider.wishlist.filter((item) => item !== jobId),
+      // },
+      $set: { wishlist: wishlist },
+    });
+    res.status(200).json({
+      success: true,
+      message: "Removed from Wishlist",
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error });
+  }
+});
+
+// get wishlist
+router.get("/getWishlistJobs/:id", async (req, res) => {
+  try {
+    const user = await serviceProvider.findById(req.params.id);
+    if (user) {
+      const wishlistJobs = await Jobs.find({ _id: { $in: user.wishlist } });
+      // console.log(wishlistJobs);
+      res.status(200).json({ success: true, wishlistJobs });
+    } else {
+      res.status(500).json({ success: false, message: "user not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: error });
   }
 });
 

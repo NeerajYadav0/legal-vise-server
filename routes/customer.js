@@ -54,14 +54,17 @@ router.post("/login", async (req, res) => {
     } else {
       var userEmail = user.email;
       var isMatch = await bcrypt.compare(req.body?.password, user.password);
-      if (!isMatch) return res.status(400).json("Invalid id or pass");
+      if (!isMatch)
+        return res
+          .status(400)
+          .json({ message: "Invalid id or pass", success: false });
       var type = user.type;
       var token = jwt.sign({ userEmail, type }, process.env.JWT_SECRET);
       delete user.password;
-      res.status(200).json({ token, user, type });
+      res.status(200).json({ token, user, type, success: true });
     }
   } catch (err) {
-    res.status(500).json(err);
+    res.status(500).json({ err, success: false });
   }
 });
 
@@ -78,6 +81,45 @@ router.post("/getDetails", async (req, res) => {
     }
   } catch (err) {
     res.status(500).json({ success: false, message: "User not found." });
+  }
+});
+//get user details by id
+router.get("/getDetails/:id", async (req, res) => {
+  try {
+    var user = await customer.findById(req.params.id);
+    if (!user) {
+      !user && res.status(401).json("User not found");
+    } else {
+      res
+        .status(200)
+        .json({ success: true, message: "User details given.", user: user });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, message: "User not found." });
+  }
+});
+
+// search users by names
+router.post("/getSimilarUsers", async (req, res) => {
+  try {
+    const namePattern = new RegExp(req.body.name, "i"); // Case-insensitive regex pattern
+    const similarUsers = await customer.find({ name: namePattern });
+
+    if (similarUsers.length === 0) {
+      res
+        .status(404)
+        .json({ success: false, message: "No similar users found." });
+    } else {
+      res.status(200).json({
+        success: true,
+        message: "Similar users found.",
+        users: similarUsers,
+      });
+    }
+  } catch (err) {
+    res
+      .status(500)
+      .json({ success: false, message: "Error finding similar users." });
   }
 });
 

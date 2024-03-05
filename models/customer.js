@@ -34,7 +34,19 @@ const CustomerSchema = new mongoose.Schema(
     pincode: {
       type: Number,
     },
+    gender: {
+      type: String,
+    },
+    dob: {
+      type: Date,
+    },
 
+    about: {
+      type: String,
+    },
+    profilePic: {
+      type: String,
+    },
     phoneNumber: {
       type: Number,
       required: true,
@@ -58,6 +70,10 @@ const CustomerSchema = new mongoose.Schema(
       default: "customer",
     },
     unlocked: {
+      type: Array,
+      default: [],
+    },
+    favServiceProvider: {
       type: Array,
       default: [],
     },

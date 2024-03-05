@@ -17,6 +17,18 @@ router.get("/getAll", async (req, res) => {
   }
 });
 
+// get single job
+router.get("/getOne/:jobId", async (req, res) => {
+  try {
+    // const query = await Jobs.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 });
+
+    const job = await Jobs.findById(req.params.jobId);
+    res.status(200).json({ success: true, job });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Job not found" });
+  }
+});
+
 //CREATE
 router.post("/create", async (req, res) => {
   console.log("====================================");
@@ -160,6 +172,40 @@ router.post("/interested", async (req, res) => {
       console.log(err);
       res.status(500).json(err);
     }
+  }
+});
+
+// get applied status
+// Apply Job
+router.post("/checkInterested/", async (req, res) => {
+  try {
+    const { jobId, serviceProviderId } = req.body;
+    const job = await Jobs.findById(jobId);
+    const legalist = await serviceProvider.findById(serviceProviderId);
+    let intereastCheck = false;
+    let wishlistCheck = false;
+    for (var i = 0; i < job.interested.length; i++) {
+      if (job.interested[i].serviceProviderId === serviceProviderId) {
+        intereastCheck = true;
+        break;
+      }
+    }
+    for (var i = 0; i < legalist.wishlist.length; i++) {
+      if (legalist.wishlist[i] === jobId) {
+        wishlistCheck = true;
+        break;
+      }
+    }
+
+    res
+      .status(200)
+      .json({
+        success: true,
+        userFound: intereastCheck,
+        wishlist: wishlistCheck,
+      });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error });
   }
 });
 
