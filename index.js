@@ -11,6 +11,7 @@ const serviceProviderRoute = require("./routes/serviceProvider");
 const jobRoute = require("./routes/jobs");
 const otpRoute = require("./routes/otp");
 const commonRoute = require("./routes/common");
+const razorPayRoute = require("./routes/payment");
 
 //configurations
 dotenv.config();
@@ -26,6 +27,7 @@ app.use("/api/serviceProvider", serviceProviderRoute);
 app.use("/api/jobs", jobRoute);
 app.use("/api/otp", otpRoute);
 app.use("/api/common", commonRoute);
+app.use("/api/razorpay", razorPayRoute);
 
 const port = process.env.PORT || 8000;
 mongoose.set("strictQuery", true);

@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const customer = require("../models/customer");
 const router = require("express").Router();
 const OtpVault = require("../models/otpVault");
+const serviceProvider = require("../models/serviceProvider");
 
 router.post("/register", async (req, res) => {
   console.log("123");
@@ -120,6 +121,83 @@ router.post("/getSimilarUsers", async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Error finding similar users." });
+  }
+});
+
+// get unlocked users
+router.get("/get_unlocked/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    await customer.findById(id).then((data) => {
+      res.status(200).json({ success: true, unlockedUsers: data.unlocked });
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Something went wrong." });
+  }
+});
+
+// get details of Interested users
+router.post("/getInterestedDetails", async (req, res) => {
+  try {
+    // const interested = req.body.interested;
+    // let name = "";
+    // const result = await interested.map(async (data) => {
+    //   await serviceProvider.findById(data.serviceProviderId).then((res) => {
+    //     name = res?.name;
+    //   });
+    //   return  { name: name };
+    // });
+    // await result;
+    // console.log(result);
+    // res.json(result);
+
+    const interested = req.body.interested;
+    const unlocked = req.body.unlocked;
+    let name = "";
+    const result = await Promise.all(
+      interested.map(async (data) => {
+        const res = await serviceProvider.findById(data.serviceProviderId);
+        name = res?.name;
+        return {
+          id: res._id,
+          name: res.name,
+          comments: data.comments,
+          approxAmount: data.approxAmount,
+          unlocked: unlocked.indexOf(data.serviceProviderId) !== -1,
+        };
+      })
+    );
+    console.log(result);
+    res.json(result);
+
+    // if (similarUsers.length === 0) {
+    //   res
+    //     .status(404)
+    //     .json({ success: false, message: "No similar users found." });
+    // } else {
+    //   res.status(200).json({
+    //     success: true,
+    //     message: "Similar users found.",
+    //     users: similarUsers,
+    //   });
+    // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+
+// add user in unlocked
+router.post("/add_unlocked", async (req, res) => {
+  try {
+    const clientId = req.body.clientId;
+    const serviceProviderId = req.body.serviceProviderId;
+
+    const result = await customer.findByIdAndUpdate(clientId, {
+      $addToSet: { unlocked: serviceProviderId },
+    });
+    res.status(200).json({ success: true, message: "Added to Unlocked" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error });
   }
 });
 
