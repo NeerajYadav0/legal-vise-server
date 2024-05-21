@@ -5,12 +5,12 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const jwt = require("jsonwebtoken");
-const customerRoute = require("../routes/customer");
-const serviceProviderRoute = require("../routes/serviceProvider");
-const jobRoute = require("../routes/jobs");
-const otpRoute = require("../routes/otp");
-const commonRoute = require("../routes/common");
-const razorPayRoute = require("../routes/payment");
+const customerRoute = require("./routes/customer");
+const serviceProviderRoute = require("./routes/serviceProvider");
+const jobRoute = require("./routes/jobs");
+const otpRoute = require("./routes/otp");
+const commonRoute = require("./routes/common");
+const razorPayRoute = require("./routes/payment");
 
 // Configurations
 dotenv.config();
