@@ -4,6 +4,7 @@ const customer = require("../models/customer");
 const router = require("express").Router();
 const OtpVault = require("../models/otpVault");
 const serviceProvider = require("../models/serviceProvider");
+// const jwt = require("jsonwebtoken");
 
 //get user details
 router.post("/updateProfile", async (req, res) => {
@@ -27,5 +28,19 @@ router.post("/updateProfile", async (req, res) => {
     res.status(500).json({ success: false, message: "User not found." });
   }
 });
+//verify jwt token
+// router.post("/verifyToken", async (req, res) => {
+//   try {
+//     let token = req.headers["authorization"]?.split(" ")[1];
+
+//     if (!token) return res.status(403).json("access denied");
+
+//     const verified = jwt.verify(token, process.env.JWT_SECRET);
+//     req.user = verified;
+//     res.status(200).json({ success: true, message: "token verified" });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: "Invalid Token." });
+//   }
+// });
 
 module.exports = router;

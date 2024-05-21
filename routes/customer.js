@@ -4,6 +4,18 @@ const customer = require("../models/customer");
 const router = require("express").Router();
 const OtpVault = require("../models/otpVault");
 const serviceProvider = require("../models/serviceProvider");
+const verifyToken = require("../middleware/auth");
+
+const multer = require("multer");
+const cloudinary = require("cloudinary").v2;
+cloudinary.config({
+  cloud_name: "dtr3t5cde",
+  api_key: "716364482187956",
+  api_secret: "C_-nlN731fySJcnvtoQio6o3v5g",
+});
+const storage = multer.memoryStorage();
+
+const upload = multer({ storage: storage });
 
 router.post("/register", async (req, res) => {
   console.log("123");
@@ -46,6 +58,34 @@ router.post("/register", async (req, res) => {
   }
 });
 
+router.post("/change_password", async (req, res) => {
+  const salt = await bcrypt.genSalt();
+  const currentPassword = req.body.currentPassword;
+  const newPassword = await bcrypt.hash(req.body?.newPassword, salt);
+  const id = req.body?.userId;
+  const user = await serviceProvider.findById(id);
+
+  try {
+    var isMatch = await bcrypt.compare(currentPassword, user.password);
+    console.log(isMatch);
+    if (!isMatch) {
+      return res
+        .status(400)
+        .json({ message: "Invalid id or pass", success: false });
+    } else {
+      await serviceProvider
+        .findByIdAndUpdate(id, { password: newPassword })
+        .then((data) => {
+          res
+            .status(200)
+            .json({ success: true, message: "password updated successfully" });
+        });
+    }
+  } catch (err) {
+    res.status(500).json(err.message);
+  }
+});
+
 //LOGIN
 router.post("/login", async (req, res) => {
   try {
@@ -70,7 +110,7 @@ router.post("/login", async (req, res) => {
 });
 
 //get user details
-router.post("/getDetails", async (req, res) => {
+router.post("/getDetails", verifyToken, async (req, res) => {
   try {
     var user = await customer.findOne({ email: req.body.email });
     if (!user) {
@@ -195,9 +235,182 @@ router.post("/add_unlocked", async (req, res) => {
     const result = await customer.findByIdAndUpdate(clientId, {
       $addToSet: { unlocked: serviceProviderId },
     });
+    const temp = await serviceProvider.findByIdAndUpdate(serviceProviderId, {
+      $inc: { unlock_count: 1 },
+    });
+    console.log(temp);
     res.status(200).json({ success: true, message: "Added to Unlocked" });
   } catch (error) {
     res.status(500).json({ success: false, message: error });
+  }
+});
+
+// UPDATE
+// router.put("/update/:id", async (req, res) => {
+//   // console.log('====================================');
+//   // console.log(req.params.id);
+//   // console.log('====================================');
+//     try {
+//       const updatedProfile = await customer.findByIdAndUpdate(
+//         req.params.id,
+//         {
+//           $set: req.body,
+//         },
+//         { new: true }
+//       );
+
+//       res.status(200).json(updatedProfile);
+//     } catch (err) {
+//       res.status(500).json(err);
+//     }
+//   });
+
+// new update
+// router.put("/update/:id", async (req, res) => {
+//   try {
+//     const existingProfile = await customer.findById(req.params.id);
+
+//     if (!existingProfile) {
+//       return res.status(404).json({ error: "Profile not found" });
+//     }
+
+//     // Iterate over each key in the request body
+//     Object.keys(req.body).forEach((key) => {
+//       // If the key exists in the existing profile, update its value
+//       if (existingProfile[key] !== undefined) {
+//         existingProfile[key] = req.body[key];
+//       }
+//     });
+
+//     // Save the updated profile
+//     // console.log(existingProfile);
+//     const updatedProfile = await existingProfile.save();
+
+//     res.status(200).json({ success: true, updatedProfile: updatedProfile });
+//   } catch (err) {
+//     res.status(500).json({ success: false, error: err.message });
+//   }
+// });
+
+// new update
+router.put("/update/:id", upload.single("profilePicture"), async (req, res) => {
+  try {
+    const existingProfile = await customer.findById(req.params.id);
+
+    if (!existingProfile) {
+      return res.status(404).json({ error: "Profile not found" });
+    }
+
+    // Handle profilePicture
+    if (req.file) {
+      const file = req.file;
+      const base64String = file.buffer.toString("base64");
+
+      const result = await cloudinary.uploader.upload(
+        `data:${file.mimetype};base64,${base64String}`,
+        {
+          folder: "your_folder_name", // Optional folder in Cloudinary
+          use_filename: true,
+        }
+      );
+      console.log(result.secure_url);
+
+      existingProfile.profilePicture = result.secure_url;
+      console.log(existingProfile);
+    }
+
+    // Iterate over each key in the request body
+    Object.keys(req.body).forEach((key) => {
+      // If the key exists in the existing profile, update its value
+      if (existingProfile[key] !== undefined && key !== "profilePicture") {
+        existingProfile[key] = req.body[key];
+      }
+    });
+
+    // Save the updated profile
+    const updatedProfile = await existingProfile.save();
+
+    res.status(200).json({ success: true, updatedProfile: updatedProfile });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// add legalist to fav
+router.post("/add_to_fav/", async (req, res) => {
+  try {
+    const clientId = req.body.clientId;
+    const legalistId = req.body.legalistId;
+
+    const updatedData = await customer
+      .updateOne(
+        { _id: clientId, favServiceProvider: { $ne: legalistId } },
+        { $push: { favServiceProvider: legalistId } }
+      )
+      .then((result) => {
+        if (result.modifiedCount > 0) {
+          console.log("legalistId added successfully.");
+        } else {
+          console.log("legalistId already exists or customer not found.");
+        }
+      });
+
+    res.status(200).json({ success: true, updatedData: updatedData });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// remove legalist from fav
+router.post("/remove_from_fav/", async (req, res) => {
+  try {
+    const clientId = req.body.clientId;
+    const legalistId = req.body.legalistId;
+
+    const updatedData = await customer
+      .updateOne(
+        { _id: clientId, favServiceProvider: legalistId },
+        { $pull: { favServiceProvider: legalistId } }
+      )
+      .then((result) => {
+        if (result.modifiedCount > 0) {
+          console.log("legalistId removed successfully.");
+        } else {
+          console.log("legalistId dosent exist or customer not found.");
+        }
+      });
+
+    res.status(200).json({ success: true, updatedData: updatedData });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// get fav legalist
+router.get("/get_fav_legalist/:id", async (req, res) => {
+  const clientId = req.params.id;
+
+  try {
+    customer
+      .findOne(
+        { _id: clientId }, // Condition to find the document by clientId
+        { favServiceProvider: 1, _id: 0 } // Projection to return only favServiceProvider field
+      )
+      .then((customerData) => {
+        if (customerData) {
+          res.status(200).json({
+            success: true,
+            favServiceProvider: customerData.favServiceProvider,
+          });
+        } else {
+          res
+            .status(200)
+            .json({ success: false, error: "Customer not found." });
+          console.log("Customer not found.");
+        }
+      });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

@@ -84,6 +84,33 @@ const ServiceProviderSchema = new mongoose.Schema(
     about: {
       type: String,
     },
+    unlock_count: {
+      type: Number,
+      default: 0,
+    },
+    pictures: {
+      type: Array,
+      default: [],
+    },
+    profilePicture: {
+      type: String,
+      default: "",
+    },
+    selectedJobs: {
+      type: Array,
+      default: [],
+    },
+
+    gender: {
+      type: String,
+    },
+    dob: {
+      type: Date,
+    },
+
+    about: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

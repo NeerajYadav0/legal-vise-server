@@ -4,6 +4,16 @@ const jwt = require("jsonwebtoken");
 const Jobs = require("../models/jobs");
 // const verifyToken = require("./../middleware/auth");
 const serviceProvider = require("../models/serviceProvider");
+const multer = require("multer");
+const cloudinary = require("cloudinary").v2;
+cloudinary.config({
+  cloud_name: "dtr3t5cde",
+  api_key: "716364482187956",
+  api_secret: "C_-nlN731fySJcnvtoQio6o3v5g",
+});
+const storage = multer.memoryStorage();
+
+const upload = multer({ storage: storage });
 
 //READ ALL JOBS
 router.get("/getAll", async (req, res) => {
@@ -30,10 +40,35 @@ router.get("/getOne/:jobId", async (req, res) => {
 });
 
 //CREATE
-router.post("/create", async (req, res) => {
+router.post("/create", upload.array("pictures"), async (req, res) => {
   console.log("====================================");
-  console.log(req.body);
+  console.log(req.body.pictures);
   console.log("====================================");
+  // exp
+  const pictures = [];
+
+  for (let i = 0; i < req.files.length; i++) {
+    const file = req.files[i];
+    console.log(req.files);
+    try {
+      const base64String = file.buffer.toString("base64");
+
+      const result = await cloudinary.uploader.upload(
+        `data:${file.mimetype};base64,${base64String}`,
+        {
+          folder: "your_folder_name", // Optional folder in Cloudinary
+          use_filename: true,
+        }
+      );
+
+      pictures.push(result.secure_url);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      return res.status(500).json({ message: "Failed to upload image" });
+    }
+  }
+
+  // exp
   const jobs = new Jobs({
     customerId: req.body.customerId,
     jobName: req.body.jobName,
@@ -43,7 +78,7 @@ router.post("/create", async (req, res) => {
     jobPincode: req.body.jobPincode,
     jobLocation: req.body.jobLocation,
     // jobOptions: req.body.jobOptions,
-    pictures: req.body.pictures,
+    pictures: pictures,
     state: req.body.state,
     city: req.body.city,
   });
@@ -197,15 +232,13 @@ router.post("/checkInterested/", async (req, res) => {
       }
     }
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        userFound: intereastCheck,
-        wishlist: wishlistCheck,
-      });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error });
+    res.status(200).json({
+      success: true,
+      userFound: intereastCheck,
+      wishlist: wishlistCheck,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
   }
 });
 
@@ -224,6 +257,45 @@ router.put("/updateJobStatus/:id", async (req, res) => {
     res.status(200).json(updatedJobs);
   } catch (err) {
     res.status(500).json(err);
+  }
+});
+
+// selected in job
+router.post("/selected", async (req, res) => {
+  const { jobId, serviceProviderId } = req.body;
+
+  try {
+    // Find the job by jobId and update the selected field
+    const job = await Jobs.findByIdAndUpdate(
+      jobId,
+      { selected: serviceProviderId },
+      { new: true }
+    );
+
+    if (!job) {
+      return res.status(404).json({ success: false, message: "Job not found" });
+    }
+
+    // Find the service provider by serviceProviderId and update the selectedJobs array
+    const serviceProviderData = await serviceProvider.findByIdAndUpdate(
+      serviceProviderId,
+      { $push: { selectedJobs: jobId } },
+      { new: true }
+    );
+
+    if (!serviceProviderData) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Service provider not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Job and service provider updated successfully",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 

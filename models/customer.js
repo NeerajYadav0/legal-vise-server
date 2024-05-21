@@ -23,11 +23,13 @@ const CustomerSchema = new mongoose.Schema(
     },
     state: {
       type: String,
+      default: "",
       min: 6,
       max: 1024,
     },
     city: {
       type: String,
+      default: "",
       min: 6,
       max: 1024,
     },
@@ -76,6 +78,10 @@ const CustomerSchema = new mongoose.Schema(
     favServiceProvider: {
       type: Array,
       default: [],
+    },
+    profilePicture: {
+      type: String,
+      default: "",
     },
   },
   { timestamps: true }

@@ -18,9 +18,9 @@ const JobsSchema = new mongoose.mongoose.Schema({
     required: true,
     min: 6,
   },
-  category:{
+  category: {
     type: Array,
-      default: [],
+    default: [],
   },
   isActive: {
     type: Boolean,
@@ -31,13 +31,13 @@ const JobsSchema = new mongoose.mongoose.Schema({
     default: Date.now,
     required: true,
   },
-  jobPincode:{
+  jobPincode: {
     type: Number,
-    required:true
+    required: true,
   },
-  jobLocation:{
-    type:String,
-    required:true
+  jobLocation: {
+    type: String,
+    required: true,
   },
   interested: {
     type: Array,
@@ -55,6 +55,10 @@ const JobsSchema = new mongoose.mongoose.Schema({
   city: {
     type: String,
     required: true,
+  },
+  selected: {
+    type: String,
+    default: "",
   },
 });
 

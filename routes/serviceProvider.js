@@ -6,6 +6,17 @@ const job = require("../models/jobs");
 const OtpVault = require("../models/otpVault");
 const Jobs = require("../models/jobs");
 
+const multer = require("multer");
+const cloudinary = require("cloudinary").v2;
+cloudinary.config({
+  cloud_name: "dtr3t5cde",
+  api_key: "716364482187956",
+  api_secret: "C_-nlN731fySJcnvtoQio6o3v5g",
+});
+const storage = multer.memoryStorage();
+
+const upload = multer({ storage: storage });
+
 router.post("/register", async (req, res) => {
   const salt = await bcrypt.genSalt();
   const provider = new serviceProvider({
@@ -47,6 +58,35 @@ router.post("/register", async (req, res) => {
   }
 });
 
+// change password
+router.post("/change_password", async (req, res) => {
+  const salt = await bcrypt.genSalt();
+  const currentPassword = req.body.currentPassword;
+  const newPassword = await bcrypt.hash(req.body?.newPassword, salt);
+  const id = req.body?.userId;
+  const user = await serviceProvider.findById(id);
+
+  try {
+    var isMatch = await bcrypt.compare(currentPassword, user.password);
+    console.log(isMatch);
+    if (!isMatch) {
+      return res
+        .status(400)
+        .json({ message: "Invalid id or pass", success: false });
+    } else {
+      await serviceProvider
+        .findByIdAndUpdate(id, { password: newPassword })
+        .then((data) => {
+          res
+            .status(200)
+            .json({ success: true, message: "password updated successfully" });
+        });
+    }
+  } catch (err) {
+    res.status(500).json(err.message);
+  }
+});
+
 //LOGIN
 router.post("/login", async (req, res) => {
   try {
@@ -70,36 +110,232 @@ router.post("/login", async (req, res) => {
   }
 });
 
-//UPDATE
+// update
 // router.put("/update/:id", async (req, res) => {
-//   console.log('====================================');
-//   console.log(req.params.id);
-//   console.log('====================================');
-//     try {
-//       const updatedProfile = await serviceProvider.findByIdAndUpdate(
-//         req.params.id,
-//         {
-//           $set: req.body,
-//         },
-//         { new: true }
-//       );
+//   try {
+//     const existingProfile = await serviceProvider.findById(req.params.id);
 
-//       res.status(200).json(updatedProfile);
-//     } catch (err) {
-//       res.status(500).json(err);
+//     if (!existingProfile) {
+//       return res.status(404).json({ error: "Profile not found" });
 //     }
-//   });
+
+//     // Iterate over each key in the request body
+//     Object.keys(req.body).forEach((key) => {
+//       // If the key exists in the existing profile, update its value
+//       if (existingProfile[key] !== undefined) {
+//         existingProfile[key] = req.body[key];
+//       }
+//     });
+
+//     // Save the updated profile
+//     // console.log(existingProfile);
+//     const updatedProfile = await existingProfile.save();
+
+//     res.status(200).json({ success: true, updatedProfile: updatedProfile });
+//   } catch (err) {
+//     res.status(500).json({ success: false, error: err.message });
+//   }
+// });
+
+// router.put(
+//   "/update/:id",
+//   upload.fields([{ name: "pictures" }, { name: "profilePicture" }]),
+//   async (req, res) => {
+//     console.log(req.body);
+//     try {
+//       const existingProfile = await serviceProvider.findById(req.params.id);
+
+//       if (!existingProfile) {
+//         return res.status(404).json({ error: "Profile not found" });
+//       }
+
+//       // Handle pictures array
+//       if (req.files && req.files.pictures) {
+//         const pictures = [];
+
+//         for (let i = 0; i < req.files.pictures.length; i++) {
+//           const file = req.files.pictures[i];
+//           const base64String = file.buffer.toString("base64");
+
+//           const result = await cloudinary.uploader.upload(
+//             `data:${file.mimetype};base64,${base64String}`,
+//             {
+//               folder: "your_folder_name", // Optional folder in Cloudinary
+//               use_filename: true,
+//             }
+//           );
+
+//           pictures.push(result.secure_url);
+//         }
+
+//         // If pictures are uploaded, assign them to existingProfile
+//         existingProfile.pictures =
+//           pictures.length > 0 ? pictures : existingProfile.pictures;
+//       }
+
+//       // Handle profilePicture
+//       if (req.files && req.files.profilePicture) {
+//         const file = req.files.profilePicture[0];
+//         const base64String = file.buffer.toString("base64");
+
+//         const result = await cloudinary.uploader.upload(
+//           `data:${file.mimetype};base64,${base64String}`,
+//           {
+//             folder: "your_folder_name", // Optional folder in Cloudinary
+//             use_filename: true,
+//           }
+//         );
+//         console.log(result.secure_url);
+
+//         existingProfile.profilePicture = result.secure_url;
+//         console.log(existingProfile);
+//       }
+
+//       // Update other fields from request body
+//       Object.keys(req.body).forEach((key) => {
+//         if (
+//           existingProfile[key] !== undefined &&
+//           key != "profilePicture" &&
+//           key != "pictures"
+//         ) {
+//           existingProfile[key] = req.body[key];
+//         }
+//       });
+//       console.log(existingProfile);
+
+//       // Save the updated profile
+//       const updatedProfile = await existingProfile.save();
+
+//       res.status(200).json({ success: true, updatedProfile: updatedProfile });
+//     } catch (err) {
+//       res.status(500).json({ success: false, error: err.message });
+//     }
+//   }
+// );
+
+// new update
+
+router.put(
+  "/update/:id",
+  upload.fields([{ name: "pictures" }, { name: "profilePicture" }]),
+  async (req, res) => {
+    console.log(req.body);
+    try {
+      const existingProfile = await serviceProvider.findById(req.params.id);
+
+      if (!existingProfile) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+
+      // Handle profilePicture
+      if (req.files && req.files.profilePicture) {
+        const file = req.files.profilePicture[0];
+        const base64String = file.buffer.toString("base64");
+
+        const result = await cloudinary.uploader.upload(
+          `data:${file.mimetype};base64,${base64String}`,
+          {
+            folder: "your_folder_name", // Optional folder in Cloudinary
+            use_filename: true,
+          }
+        );
+
+        existingProfile.profilePicture = result.secure_url;
+      }
+
+      // Handle pictures array
+      let picturesFromFrontend = req.body.pictures || [];
+
+      // If pictures array is a string (single link), convert it to an array
+      if (typeof picturesFromFrontend === "string") {
+        picturesFromFrontend = [picturesFromFrontend];
+      }
+
+      if (req.files && req.files.pictures) {
+        for (let i = 0; i < req.files.pictures.length; i++) {
+          const file = req.files.pictures[i];
+          const base64String = file.buffer.toString("base64");
+
+          const result = await cloudinary.uploader.upload(
+            `data:${file.mimetype};base64,${base64String}`,
+            {
+              folder: "your_folder_name", // Optional folder in Cloudinary
+              use_filename: true,
+            }
+          );
+
+          picturesFromFrontend.push(result.secure_url);
+        }
+      }
+
+      // Compare and update pictures array
+      existingProfile.pictures = picturesFromFrontend;
+
+      // Update other fields from request body
+      Object.keys(req.body).forEach((key) => {
+        if (
+          existingProfile[key] !== undefined &&
+          key !== "profilePicture" &&
+          key !== "pictures"
+        ) {
+          existingProfile[key] = req.body[key];
+        }
+      });
+
+      // Save the updated profile
+      const updatedProfile = await existingProfile.save();
+
+      res.status(200).json({ success: true, updatedProfile: updatedProfile });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
 
 // get all service provider jobs
+// router.get("/getAllServiceProviderJobs/:id", async (req, res) => {
+//   try {
+//     console.log(req.params.id);
+//     const id = req.params.id;
+//     const sp = await serviceProvider.findById(id);
+//     console.log(sp);
+//     const ids = sp.jobs;
+//     // console.log(ids);
+//     const records = await job.find({ _id: { $in: ids } });
+//     res.status(200).send(records);
+//   } catch (error) {
+//     res.status(500).json(error);
+//   }
+// });
+const mongoose = require("mongoose");
+
+const { ObjectId } = mongoose.Types;
+
+// Get all service provider jobs
 router.get("/getAllServiceProviderJobs/:id", async (req, res) => {
   try {
-    const sp = await serviceProvider.findById(req.params.id);
+    const { id } = req.params;
+
+    // Check if id is a valid ObjectId
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid service provider ID" });
+    }
+
+    const sp = await serviceProvider.findById(id);
+
+    // Check if the service provider exists
+    if (!sp) {
+      return res.status(404).json({ message: "Service provider not found" });
+    }
+
     const ids = sp.jobs;
 
-    const records = await job.find({ _id: { $in: ids } });
-    res.status(200).send(records);
+    // Fetch jobs using the array of job IDs
+    const records = await Jobs.find({ _id: { $in: ids } });
+
+    res.status(200).json(records);
   } catch (error) {
-    res.status(500).json(err);
+    res.status(500).json({ message: "Server error", error });
   }
 });
 
