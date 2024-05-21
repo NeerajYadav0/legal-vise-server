@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const serviceProvider = require("../models/serviceProvider");
 const router = require("express").Router();
 const job = require("../models/jobs");
