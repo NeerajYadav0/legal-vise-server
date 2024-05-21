@@ -29,6 +29,15 @@ app.use("/api/otp", otpRoute);
 app.use("/api/common", commonRoute);
 app.use("/api/razorpay", razorPayRoute);
 
+const corsOptions = {
+  origin: "https://legal-vise-client.vercel.app", // Allow your frontend's origin
+  methods: ["GET", "POST", "PUT", "DELETE"], // Specify allowed HTTP methods
+  allowedHeaders: ["Content-Type", "Authorization"], // Specify allowed headers
+};
+
+// Use the CORS middleware
+app.use(cors(corsOptions));
+
 const port = process.env.PORT || 8000;
 mongoose.set("strictQuery", true);
 mongoose
