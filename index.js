@@ -30,7 +30,7 @@ app.use("/api/common", commonRoute);
 app.use("/api/razorpay", razorPayRoute);
 
 const corsOptions = {
-  origin: "https://legal-vise-client.vercel.app", // Allow your frontend's origin
+  origin: ["https://legal-vise-client.vercel.app/", "http://localhost:5173/"], // Allow your frontend's origin
   methods: ["GET", "POST", "PUT", "DELETE"], // Specify allowed HTTP methods
   allowedHeaders: ["Content-Type", "Authorization"], // Specify allowed headers
 };
