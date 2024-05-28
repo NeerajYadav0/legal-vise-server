@@ -14,6 +14,7 @@ cloudinary.config({
   api_secret: "C_-nlN731fySJcnvtoQio6o3v5g",
 });
 const storage = multer.memoryStorage();
+const { verifyToken, verifyAdmin } = require("./../middleware/auth");
 
 const upload = multer({ storage: storage });
 
@@ -59,7 +60,7 @@ router.post("/register", async (req, res) => {
 });
 
 // change password
-router.post("/change_password", async (req, res) => {
+router.post("/change_password", verifyToken, async (req, res) => {
   const salt = await bcrypt.genSalt();
   const currentPassword = req.body.currentPassword;
   const newPassword = await bcrypt.hash(req.body?.newPassword, salt);
@@ -217,6 +218,7 @@ router.post("/login", async (req, res) => {
 
 router.put(
   "/update/:id",
+  verifyToken,
   upload.fields([{ name: "pictures" }, { name: "profilePicture" }]),
   async (req, res) => {
     console.log(req.body);
@@ -293,54 +295,69 @@ router.put(
 );
 
 // get all service provider jobs
-// router.get("/getAllServiceProviderJobs/:id", async (req, res) => {
-//   try {
-//     console.log(req.params.id);
-//     const id = req.params.id;
-//     const sp = await serviceProvider.findById(id);
-//     console.log(sp);
-//     const ids = sp.jobs;
-//     // console.log(ids);
-//     const records = await job.find({ _id: { $in: ids } });
-//     res.status(200).send(records);
-//   } catch (error) {
-//     res.status(500).json(error);
-//   }
-// });
+router.get("/getAllServiceProviderJobs/:id", verifyToken, async (req, res) => {
+  try {
+    console.log(req.params.id);
+    const id = req.params.id;
+    const sp = await serviceProvider.findById(id);
+    console.log(sp);
+    const ids = sp.jobs;
+    // console.log(ids);
+    const records = await job.find({ _id: { $in: ids } });
+    res.status(200).send(records);
+  } catch (error) {
+    res.status(500).json(error);
+  }
+});
+router.get("/getAllSelectedJobs/:id", verifyToken, async (req, res) => {
+  try {
+    console.log(req.params.id);
+    const id = req.params.id;
+    const sp = await serviceProvider.findById(id);
+    console.log(sp);
+    const ids = sp.selectedJobs;
+    // console.log(ids);
+    const records = await job.find({ _id: { $in: ids } });
+    res.status(200).send(records);
+  } catch (error) {
+    res.status(500).json(error);
+  }
+});
+
 const mongoose = require("mongoose");
 
 const { ObjectId } = mongoose.Types;
 
-// Get all service provider jobs
-router.get("/getAllServiceProviderJobs/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
+// // Get all service provider jobs
+// router.get("/getAllServiceProviderJobs/:id", async (req, res) => {
+//   try {
+//     const { id } = req.params;
 
-    // Check if id is a valid ObjectId
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid service provider ID" });
-    }
+//     // Check if id is a valid ObjectId
+//     if (!ObjectId.isValid(id)) {
+//       return res.status(400).json({ message: "Invalid service provider ID" });
+//     }
 
-    const sp = await serviceProvider.findById(id);
+//     const sp = await serviceProvider.findById(id);
 
-    // Check if the service provider exists
-    if (!sp) {
-      return res.status(404).json({ message: "Service provider not found" });
-    }
+//     // Check if the service provider exists
+//     if (!sp) {
+//       return res.status(404).json({ message: "Service provider not found" });
+//     }
 
-    const ids = sp.jobs;
+//     const ids = sp.jobs;
 
-    // Fetch jobs using the array of job IDs
-    const records = await Jobs.find({ _id: { $in: ids } });
+//     // Fetch jobs using the array of job IDs
+//     const records = await Jobs.find({ _id: { $in: ids } });
 
-    res.status(200).json(records);
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
-  }
-});
+//     res.status(200).json(records);
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error });
+//   }
+// });
 
 //get user details
-router.post("/getDetails", async (req, res) => {
+router.post("/getDetails", verifyToken, async (req, res) => {
   try {
     var user = await serviceProvider.findOne({ email: req.body.email });
     if (!user) {
@@ -356,7 +373,7 @@ router.post("/getDetails", async (req, res) => {
 });
 
 // add job to wishlist
-router.post("/addToWishlist", async (req, res) => {
+router.post("/addToWishlist", verifyToken, async (req, res) => {
   try {
     const jobId = req.body.jobId;
     const serviceProviderId = req.body.serviceProviderId;
@@ -371,7 +388,7 @@ router.post("/addToWishlist", async (req, res) => {
 });
 
 // remove from wishlist
-router.delete("/removeFromWishlist", async (req, res) => {
+router.delete("/removeFromWishlist", verifyToken, async (req, res) => {
   try {
     const jobId = req.body.id;
     const serviceProviderId = req.body.serviceProviderId;
@@ -401,7 +418,7 @@ router.delete("/removeFromWishlist", async (req, res) => {
 });
 
 // get wishlist
-router.get("/getWishlistJobs/:id", async (req, res) => {
+router.get("/getWishlistJobs/:id", verifyToken, async (req, res) => {
   try {
     const user = await serviceProvider.findById(req.params.id);
     if (user) {
@@ -417,7 +434,7 @@ router.get("/getWishlistJobs/:id", async (req, res) => {
 });
 
 // search users by names
-router.post("/getSimilarServiceProviders", async (req, res) => {
+router.post("/getSimilarServiceProviders", verifyToken, async (req, res) => {
   try {
     const namePattern = new RegExp(req.body.name, "i"); // Case-insensitive regex pattern
     const similarUsers = await serviceProvider.find({ name: namePattern });
@@ -440,7 +457,7 @@ router.post("/getSimilarServiceProviders", async (req, res) => {
   }
 });
 
-router.get("/getDetails/:id", async (req, res) => {
+router.get("/getDetails/:id", verifyToken, async (req, res) => {
   try {
     var user = await serviceProvider.findById(req.params.id);
     if (!user) {
@@ -452,6 +469,159 @@ router.get("/getDetails/:id", async (req, res) => {
     }
   } catch (err) {
     res.status(500).json({ success: false, message: "User not found." });
+  }
+});
+
+// save rating
+// router.post("/add_rating", async (req, res) => {
+//   try {
+//     const { comment, rating, serviceProviderId, customerId } = req.body;
+//     console.log("enter 0");
+//     // Validate serviceProviderId and customerId
+//     if (
+//       !mongoose.Types.ObjectId.isValid(serviceProviderId) ||
+//       !mongoose.Types.ObjectId.isValid(customerId)
+//     ) {
+//       return res
+//         .status(400)
+//         .json({ message: "Invalid serviceProviderId or customerId" });
+//     }
+//     console.log("enter 0.2");
+//     // Validate rating
+//     if (typeof rating !== "number" || rating < 1 || rating > 5) {
+//       return res
+//         .status(400)
+//         .json({ message: "Invalid rating. Must be a number between 1 and 5." });
+//     }
+//     console.log("enter 0.3");
+//     // Find the service provider by ID
+//     const serviceProviderData = await serviceProvider.findById(
+//       serviceProviderId
+//     );
+//     console.log("enter 0.5");
+//     if (!serviceProviderData) {
+//       return res.status(404).json({ message: "Service provider not found" });
+//     }
+//     console.log("enter 1");
+//     // Check if the customer has already submitted a review
+//     const existingRating = serviceProviderData.rating.find(
+//       (r) => r.customerId.toString() === customerId
+//     );
+//     if (existingRating) {
+//       return res
+//         .status(400)
+//         .json({ message: "Customer has already submitted a review." });
+//     }
+//     console.log("enter 2");
+//     // Create a new rating object
+//     const newRating = {
+//       comment,
+//       rating,
+//       customerId,
+//     };
+//     console.log("enter 3");
+//     // Add the new rating to the service provider's ratings array
+//     serviceProviderData.rating.push(newRating);
+//     await serviceProviderData.save();
+
+//     res.status(200).json({ message: "Rating added successfully" });
+//   } catch (err) {
+//     res.status(500).json({ message: "Server error", err });
+//   }
+// });
+router.post("/add_rating", verifyToken, async (req, res) => {
+  try {
+    const { comment, rating, serviceProviderId, customerId } = req.body;
+    console.log("enter 0");
+
+    // Validate serviceProviderId and customerId
+    if (
+      !mongoose.Types.ObjectId.isValid(serviceProviderId) ||
+      !mongoose.Types.ObjectId.isValid(customerId)
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Invalid serviceProviderId or customerId" });
+    }
+
+    console.log("enter 0.2");
+
+    // Validate rating
+    if (typeof rating !== "number" || rating < 1 || rating > 5) {
+      return res
+        .status(400)
+        .json({ message: "Invalid rating. Must be a number between 1 and 5." });
+    }
+
+    console.log("enter 0.4");
+
+    // Find the service provider by ID
+    const serviceProviderData = await serviceProvider.findById(
+      serviceProviderId
+    );
+    if (!serviceProviderData) {
+      return res.status(404).json({ message: "Service provider not found" });
+    }
+
+    console.log("enter 0.5");
+
+    // Check if the customer has already submitted a review
+    const existingRatingIndex = serviceProviderData.rating.findIndex(
+      (r) => r.customerId.toString() === customerId
+    );
+
+    if (existingRatingIndex !== -1) {
+      // If the rating by the customer exists, update the existing rating
+      serviceProviderData.rating[existingRatingIndex].comment = comment;
+      serviceProviderData.rating[existingRatingIndex].rating = rating;
+    } else {
+      // If the rating by the customer does not exist, create a new rating object
+      const newRating = {
+        comment,
+        rating,
+        customerId,
+      };
+      console.log(newRating);
+      console.log("enter 3");
+
+      // Add the new rating to the service provider's ratings array
+      serviceProviderData.rating.push(newRating);
+    }
+    // Mark the document as modified to ensure Mongoose detects the change
+    serviceProviderData.markModified("rating");
+
+    await serviceProviderData.save();
+
+    console.log("enter 4", serviceProviderData);
+
+    res.status(200).json({ message: "Rating added or updated successfully" });
+  } catch (err) {
+    console.error("Error in /add_rating route:", err);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
+router.post("/getDetailsSP", verifyToken, async (req, res) => {
+  const { ids } = req.body; // Expecting an array of IDs in the request body
+  console.log(ids);
+  try {
+    const users = await serviceProvider.find({ _id: { $in: ids } });
+
+    if (users.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No users found." });
+    }
+
+    res
+      .status(200)
+      .json({ success: true, message: "User details given.", users });
+  } catch (err) {
+    console.error(err); // Log the error for debugging
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching user details.",
+    });
   }
 });
 

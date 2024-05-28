@@ -63,8 +63,8 @@ const ServiceProviderSchema = new mongoose.Schema(
       required: true,
     },
     rating: {
-      type: Object,
-      default: {},
+      type: Array,
+      default: [],
     },
     categoryData: {
       type: Object,
@@ -110,6 +110,10 @@ const ServiceProviderSchema = new mongoose.Schema(
 
     about: {
       type: String,
+    },
+    blocked: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }

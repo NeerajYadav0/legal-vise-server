@@ -4,7 +4,7 @@ const customer = require("../models/customer");
 const router = require("express").Router();
 const OtpVault = require("../models/otpVault");
 const serviceProvider = require("../models/serviceProvider");
-const verifyToken = require("../middleware/auth");
+const { verifyToken } = require("../middleware/auth");
 
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
@@ -58,7 +58,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.post("/change_password", async (req, res) => {
+router.post("/change_password", verifyToken, async (req, res) => {
   const salt = await bcrypt.genSalt();
   const currentPassword = req.body.currentPassword;
   const newPassword = await bcrypt.hash(req.body?.newPassword, salt);
@@ -141,7 +141,7 @@ router.get("/getDetails/:id", async (req, res) => {
 });
 
 // search users by names
-router.post("/getSimilarUsers", async (req, res) => {
+router.post("/getSimilarUsers", verifyToken, async (req, res) => {
   try {
     const namePattern = new RegExp(req.body.name, "i"); // Case-insensitive regex pattern
     const similarUsers = await customer.find({ name: namePattern });
@@ -165,7 +165,7 @@ router.post("/getSimilarUsers", async (req, res) => {
 });
 
 // get unlocked users
-router.get("/get_unlocked/:id", async (req, res) => {
+router.get("/get_unlocked/:id", verifyToken, async (req, res) => {
   try {
     const id = req.params.id;
     await customer.findById(id).then((data) => {
@@ -177,7 +177,7 @@ router.get("/get_unlocked/:id", async (req, res) => {
 });
 
 // get details of Interested users
-router.post("/getInterestedDetails", async (req, res) => {
+router.post("/getInterestedDetails", verifyToken, async (req, res) => {
   try {
     // const interested = req.body.interested;
     // let name = "";
@@ -227,7 +227,7 @@ router.post("/getInterestedDetails", async (req, res) => {
 });
 
 // add user in unlocked
-router.post("/add_unlocked", async (req, res) => {
+router.post("/add_unlocked", verifyToken, async (req, res) => {
   try {
     const clientId = req.body.clientId;
     const serviceProviderId = req.body.serviceProviderId;
@@ -293,51 +293,56 @@ router.post("/add_unlocked", async (req, res) => {
 // });
 
 // new update
-router.put("/update/:id", upload.single("profilePicture"), async (req, res) => {
-  try {
-    const existingProfile = await customer.findById(req.params.id);
+router.put(
+  "/update/:id",
+  verifyToken,
+  upload.single("profilePicture"),
+  async (req, res) => {
+    try {
+      const existingProfile = await customer.findById(req.params.id);
 
-    if (!existingProfile) {
-      return res.status(404).json({ error: "Profile not found" });
-    }
-
-    // Handle profilePicture
-    if (req.file) {
-      const file = req.file;
-      const base64String = file.buffer.toString("base64");
-
-      const result = await cloudinary.uploader.upload(
-        `data:${file.mimetype};base64,${base64String}`,
-        {
-          folder: "your_folder_name", // Optional folder in Cloudinary
-          use_filename: true,
-        }
-      );
-      console.log(result.secure_url);
-
-      existingProfile.profilePicture = result.secure_url;
-      console.log(existingProfile);
-    }
-
-    // Iterate over each key in the request body
-    Object.keys(req.body).forEach((key) => {
-      // If the key exists in the existing profile, update its value
-      if (existingProfile[key] !== undefined && key !== "profilePicture") {
-        existingProfile[key] = req.body[key];
+      if (!existingProfile) {
+        return res.status(404).json({ error: "Profile not found" });
       }
-    });
 
-    // Save the updated profile
-    const updatedProfile = await existingProfile.save();
+      // Handle profilePicture
+      if (req.file) {
+        const file = req.file;
+        const base64String = file.buffer.toString("base64");
 
-    res.status(200).json({ success: true, updatedProfile: updatedProfile });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+        const result = await cloudinary.uploader.upload(
+          `data:${file.mimetype};base64,${base64String}`,
+          {
+            folder: "your_folder_name", // Optional folder in Cloudinary
+            use_filename: true,
+          }
+        );
+        console.log(result.secure_url);
+
+        existingProfile.profilePicture = result.secure_url;
+        console.log(existingProfile);
+      }
+
+      // Iterate over each key in the request body
+      Object.keys(req.body).forEach((key) => {
+        // If the key exists in the existing profile, update its value
+        if (existingProfile[key] !== undefined && key !== "profilePicture") {
+          existingProfile[key] = req.body[key];
+        }
+      });
+
+      // Save the updated profile
+      const updatedProfile = await existingProfile.save();
+
+      res.status(200).json({ success: true, updatedProfile: updatedProfile });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
   }
-});
+);
 
 // add legalist to fav
-router.post("/add_to_fav/", async (req, res) => {
+router.post("/add_to_fav/", verifyToken, async (req, res) => {
   try {
     const clientId = req.body.clientId;
     const legalistId = req.body.legalistId;
@@ -362,7 +367,7 @@ router.post("/add_to_fav/", async (req, res) => {
 });
 
 // remove legalist from fav
-router.post("/remove_from_fav/", async (req, res) => {
+router.delete("/remove_from_fav/", verifyToken, async (req, res) => {
   try {
     const clientId = req.body.clientId;
     const legalistId = req.body.legalistId;
@@ -387,7 +392,7 @@ router.post("/remove_from_fav/", async (req, res) => {
 });
 
 // get fav legalist
-router.get("/get_fav_legalist/:id", async (req, res) => {
+router.get("/get_fav_legalist/:id", verifyToken, async (req, res) => {
   const clientId = req.params.id;
 
   try {
@@ -409,6 +414,16 @@ router.get("/get_fav_legalist/:id", async (req, res) => {
           console.log("Customer not found.");
         }
       });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.get("/rating_Users/:id", verifyToken, async (req, res) => {
+  const id = req.params.id;
+  try {
+    const customerData = await customer.findById(id);
+    res.status(200).json({ success: true, data: customerData?.readyForRating });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

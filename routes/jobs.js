@@ -1,9 +1,10 @@
 const router = require("express").Router();
-const verifyToken = require("./../middleware/auth");
+
 const jwt = require("jsonwebtoken");
 const Jobs = require("../models/jobs");
 // const verifyToken = require("./../middleware/auth");
 const serviceProvider = require("../models/serviceProvider");
+const Customer = require("../models/customer");
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 cloudinary.config({
@@ -12,11 +13,14 @@ cloudinary.config({
   api_secret: "C_-nlN731fySJcnvtoQio6o3v5g",
 });
 const storage = multer.memoryStorage();
+const mongoose = require("mongoose");
+
+const { verifyToken, verifyAdmin } = require("./../middleware/auth");
 
 const upload = multer({ storage: storage });
 
 //READ ALL JOBS
-router.get("/getAll", async (req, res) => {
+router.get("/getAll", verifyToken, async (req, res) => {
   try {
     // const query = await Jobs.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 });
 
@@ -28,7 +32,7 @@ router.get("/getAll", async (req, res) => {
 });
 
 // get single job
-router.get("/getOne/:jobId", async (req, res) => {
+router.get("/getOne/:jobId", verifyToken, async (req, res) => {
   try {
     // const query = await Jobs.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 });
 
@@ -40,59 +44,66 @@ router.get("/getOne/:jobId", async (req, res) => {
 });
 
 //CREATE
-router.post("/create", upload.array("pictures"), async (req, res) => {
-  console.log("====================================");
-  console.log(req.body.pictures);
-  console.log("====================================");
-  // exp
-  const pictures = [];
+router.post(
+  "/create",
+  verifyToken,
+  upload.array("pictures"),
+  async (req, res) => {
+    console.log("====================================");
+    console.log(req.body.pictures);
+    console.log("====================================");
+    // exp
+    const pictures = [];
 
-  for (let i = 0; i < req.files.length; i++) {
-    const file = req.files[i];
-    console.log(req.files);
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
+      console.log(req.files);
+      try {
+        const base64String = file.buffer.toString("base64");
+
+        const result = await cloudinary.uploader.upload(
+          `data:${file.mimetype};base64,${base64String}`,
+          {
+            folder: "your_folder_name", // Optional folder in Cloudinary
+            use_filename: true,
+          }
+        );
+
+        pictures.push(result.secure_url);
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        return res.status(500).json({ message: "Failed to upload image" });
+      }
+    }
+
+    // exp
+    // console.log(req.body.category.split(", "));
+    console.log(req.body.category.split(","));
+    const jobs = new Jobs({
+      customerId: req.body.customerId,
+      jobName: req.body.jobName,
+      jobDesc: req.body.jobDesc,
+      category: req.body.category.split(","),
+      isActive: req.body.isActive,
+      jobPincode: req.body.jobPincode,
+      jobLocation: req.body.jobLocation,
+      // jobOptions: req.body.jobOptions,
+      pictures: pictures,
+      state: req.body.state,
+      city: req.body.city,
+    });
     try {
-      const base64String = file.buffer.toString("base64");
-
-      const result = await cloudinary.uploader.upload(
-        `data:${file.mimetype};base64,${base64String}`,
-        {
-          folder: "your_folder_name", // Optional folder in Cloudinary
-          use_filename: true,
-        }
-      );
-
-      pictures.push(result.secure_url);
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      return res.status(500).json({ message: "Failed to upload image" });
+      const savedJobs = await jobs.save();
+      res.status(200).json(savedJobs);
+      // console.log(savedJobs);
+    } catch (err) {
+      res.status(500).json(err);
     }
   }
-
-  // exp
-  const jobs = new Jobs({
-    customerId: req.body.customerId,
-    jobName: req.body.jobName,
-    jobDesc: req.body.jobDesc,
-    category: req.body.category,
-    isActive: req.body.isActive,
-    jobPincode: req.body.jobPincode,
-    jobLocation: req.body.jobLocation,
-    // jobOptions: req.body.jobOptions,
-    pictures: pictures,
-    state: req.body.state,
-    city: req.body.city,
-  });
-  try {
-    const savedJobs = await jobs.save();
-    res.status(200).json(savedJobs);
-    // console.log(savedJobs);
-  } catch (err) {
-    res.status(500).json(err);
-  }
-});
+);
 
 //GET CUSTOMER JOBS
-router.get("/find/:customerId", async (req, res) => {
+router.get("/find/:customerId", verifyToken, async (req, res) => {
   try {
     const jobs = await Jobs.find({ customerId: req.params.customerId });
     if (!jobs) {
@@ -106,7 +117,7 @@ router.get("/find/:customerId", async (req, res) => {
 });
 
 //GET A SPECIFIC LOCATION JOB
-router.post("/jobSearchByLocation", async (req, res) => {
+router.post("/jobSearchByLocation", verifyToken, async (req, res) => {
   const state = req.body.state;
   const city = req.body.city;
   try {
@@ -138,7 +149,7 @@ router.post("/jobSearchByLocation", async (req, res) => {
 });
 
 //UPDATE
-router.put("/update/:id", async (req, res) => {
+router.put("/update/:id", verifyToken, async (req, res) => {
   console.log("====================================");
   console.log(req.params.id);
   console.log("====================================");
@@ -158,7 +169,7 @@ router.put("/update/:id", async (req, res) => {
 });
 
 //DELETE
-router.delete("/delete/:id", async (req, res) => {
+router.delete("/delete/:id", verifyToken, async (req, res) => {
   try {
     const temp = await Jobs.findByIdAndDelete(req.params.id);
     if (!temp) {
@@ -172,7 +183,7 @@ router.delete("/delete/:id", async (req, res) => {
 });
 
 // Apply Job
-router.post("/interested", async (req, res) => {
+router.post("/interested", verifyToken, async (req, res) => {
   const { jobId, serviceProviderId, approxAmount, comments } = req.body;
   console.log("====================================");
   console.log(req.body);
@@ -212,7 +223,7 @@ router.post("/interested", async (req, res) => {
 
 // get applied status
 // Apply Job
-router.post("/checkInterested/", async (req, res) => {
+router.post("/checkInterested/", verifyToken, async (req, res) => {
   try {
     const { jobId, serviceProviderId } = req.body;
     const job = await Jobs.findById(jobId);
@@ -247,7 +258,7 @@ router.post("/checkInterested/", async (req, res) => {
 //delete proposal
 
 //update job status
-router.put("/updateJobStatus/:id", async (req, res) => {
+router.put("/updateJobStatus/:id", verifyToken, async (req, res) => {
   try {
     const job = await Jobs.findById(req.params.id);
     const updatedJobs = await Jobs.findByIdAndUpdate(req.params.id, {
@@ -261,7 +272,7 @@ router.put("/updateJobStatus/:id", async (req, res) => {
 });
 
 // selected in job
-router.post("/selected", async (req, res) => {
+router.post("/selected", verifyToken, async (req, res) => {
   const { jobId, serviceProviderId } = req.body;
 
   try {
@@ -296,6 +307,52 @@ router.post("/selected", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+// selected in job
+router.post("/job_confirmation", verifyToken, async (req, res) => {
+  try {
+    const { jobId, serviceProviderId } = req.body;
+
+    // Validate jobId and serviceProviderId
+    if (
+      !mongoose.Types.ObjectId.isValid(jobId) ||
+      !mongoose.Types.ObjectId.isValid(serviceProviderId)
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Invalid jobId or serviceProviderId" });
+    }
+
+    // Find the job by jobId and update its started field to true
+    const job = await Jobs.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+    job.started = true;
+    await job.save();
+
+    // Retrieve the customerId from the job
+    const customerId = job.customerId;
+    if (!mongoose.Types.ObjectId.isValid(customerId)) {
+      return res.status(400).json({ message: "Invalid customerId in job" });
+    }
+
+    // Find the customer by customerId
+    const customer = await Customer.findById(customerId);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    // Update the readyForRating array if serviceProviderId is not already present
+    if (!customer.readyForRating.includes(serviceProviderId)) {
+      customer.readyForRating.push(serviceProviderId);
+      await customer.save();
+    }
+
+    res.status(200).json({ message: "Job confirmation successful" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
   }
 });
 

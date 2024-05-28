@@ -83,6 +83,14 @@ const CustomerSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    readyForRating: {
+      type: Array,
+      default: [],
+    },
+    blocked: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

@@ -14,6 +14,15 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
+const verifyAdmin = (req, res, next) => {
+  if (req.user.type !== "admin") {
+    return res
+      .status(403)
+      .json({ error: "Only admin users can access this route" });
+  }
+  next();
+};
+
 // const verifyToken = (req, res, next) => {
 //   const authHeaders = req.headers.token;
 //   if (authHeaders) {
@@ -28,4 +37,4 @@ const verifyToken = async (req, res, next) => {
 //   }
 // };
 
-module.exports = verifyToken;
+module.exports = { verifyToken, verifyAdmin };

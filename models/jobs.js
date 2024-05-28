@@ -60,6 +60,10 @@ const JobsSchema = new mongoose.mongoose.Schema({
     type: String,
     default: "",
   },
+  started: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 module.exports = mongoose.model("Jobs", JobsSchema);
