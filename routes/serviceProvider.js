@@ -269,7 +269,7 @@ router.put(
           picturesFromFrontend.push(result.secure_url);
         }
       }
-
+      console.log(picturesFromFrontend);
       // Compare and update pictures array
       existingProfile.pictures = picturesFromFrontend;
 
