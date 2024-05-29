@@ -63,7 +63,7 @@ router.post("/change_password", verifyToken, async (req, res) => {
   const currentPassword = req.body.currentPassword;
   const newPassword = await bcrypt.hash(req.body?.newPassword, salt);
   const id = req.body?.userId;
-  const user = await serviceProvider.findById(id);
+  const user = await customer.findById(id);
 
   try {
     var isMatch = await bcrypt.compare(currentPassword, user.password);
